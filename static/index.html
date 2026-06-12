@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Job Scheduler</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>⚙️ Background Job Scheduler</h1>
+      <span id="connection-status" class="badge badge-success">● Live</span>
+    </header>
+
+    <!-- Dashboard Stats -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-pending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-processing">0</div>
+        <div class="stat-label">Processing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-completed">0</div>
+        <div class="stat-label">Completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-failed">0</div>
+        <div class="stat-label">Failed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-cancelled">0</div>
+        <div class="stat-label">Cancelled</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-queue">0</div>
+        <div class="stat-label">In Queue</div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('jobs')">Jobs</button>
+      <button class="tab" onclick="switchTab('create')">Create Job</button>
+      <button class="tab" onclick="switchTab('dlq')">Dead-Letter Queue</button>
+    </div>
+
+    <!-- Jobs Table -->
+    <section id="tab-jobs" class="tab-content active">
+      <div class="table-header">
+        <h2>All Jobs</h2>
+        <select id="status-filter" onchange="filterJobs()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Retries</th>
+              <th>Scheduled</th>
+              <th>Interval</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-table-body">
+            <tr><td colspan="9" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Create Job Form -->
+    <section id="tab-create" class="tab-content">
+      <h2>Create New Job</h2>
+      <div class="form-card">
+
+        <div class="form-group">
+          <label>Job Type</label>
+          <select id="job-type" onchange="updatePayloadTemplate()">
+            <option value="send_email">Send Email</option>
+            <option value="webhook_delivery">Webhook Delivery</option>
+            <option value="log_processing">Log Processing</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="job-priority">
+            <option value="1">1 — High</option>
+            <option value="2" selected>2 — Medium</option>
+            <option value="3">3 — Low</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Payload (JSON)</label>
+          <textarea id="job-payload" rows="5"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Scheduled At (optional — leave blank to run immediately)</label>
+          <input type="datetime-local" id="job-scheduled-at" />
+        </div>
+
+        <div class="form-group">
+          <label>Recurring Interval (optional)</label>
+          <select id="job-interval">
+            <option value="">None</option>
+            <option value="every_1_minute">Every 1 Minute</option>
+            <option value="every_5_minutes">Every 5 Minutes</option>
+            <option value="every_1_hour">Every 1 Hour</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="job-recurring" />
+            Recurring Job
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Dependencies (comma-separated job IDs — optional)</label>
+          <input type="text" id="job-dependencies" placeholder="job-id-1, job-id-2" />
+        </div>
+
+        <div id="create-error" class="error-msg" style="display:none"></div>
+        <div id="create-success" class="success-msg" style="display:none"></div>
+
+        <button class="btn-primary" onclick="createJob()">Create Job</button>
+      </div>
+    </section>
+
+    <!-- DLQ View -->
+    <section id="tab-dlq" class="tab-content">
+      <div class="table-header">
+        <h2>Dead-Letter Queue</h2>
+        <span id="dlq-alert" class="badge badge-danger" style="display:none">
+          ⚠️ Threshold Exceeded
+        </span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>DLQ ID</th>
+              <th>Job ID</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Retries</th>
+              <th>Error</th>
+              <th>Failed At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="dlq-table-body">
+            <tr><td colspan="8" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
