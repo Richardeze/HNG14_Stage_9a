@@ -8,7 +8,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-@dataclass(order=True)
+@dataclass
 class QueueItem:
     """
     Represents one item in the heap.
