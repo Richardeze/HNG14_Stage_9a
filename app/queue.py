@@ -22,9 +22,34 @@ class QueueItem:
     effective_priority: float
     scheduled_at: datetime
     created_at: datetime
-    job_id: str = field(compare=True)
+    job_id: str
     job_type: str = field(compare=False)
     payload: dict = field(compare=False, default_factory=dict)
+
+    def __lt__(self, other: "QueueItem") -> bool:
+        return (
+            self.effective_priority,
+            self.scheduled_at,
+            self.created_at,
+        ) < (
+            other.effective_priority,
+            other.scheduled_at,
+            other.created_at,
+        )
+
+    def __le__(self, other: "QueueItem") -> bool:
+        return self == other or self < other
+
+    def __gt__(self, other: "QueueItem") -> bool:
+        return not self <= other
+
+    def __ge__(self, other: "QueueItem") -> bool:
+        return not self < other
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, QueueItem):
+            return False
+        return self.job_id == other.job_id
 
 
 class PriorityQueue:

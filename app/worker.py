@@ -3,7 +3,7 @@ import logging
 import random
 from datetime import datetime, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -268,17 +268,23 @@ async def worker_loop():
 
 async def load_pending_jobs():
     """
-    On startup (or when queue is empty), pull all pending jobs
-    from the database and push them into the heap.
+    On startup (or when queue is empty), pull pending jobs
+    that are due now from the database and push them into the heap.
+    Only loads jobs whose scheduled_at is in the past or null.
     """
     async with AsyncSessionLocal() as session:
+        now = datetime.now(timezone.utc)
         result = await session.execute(
-            select(Job).where(Job.status == JobStatus.pending)
+            select(Job).where(
+                Job.status == JobStatus.pending,
+                or_(Job.scheduled_at == None) | (Job.scheduled_at <= now),
+            )
         )
         jobs = result.scalars().all()
 
+        loaded = 0
         for job in jobs:
-            await priority_queue.push(QueueItem(
+            pushed = await priority_queue.push(QueueItem(
                 effective_priority=job.effective_priority,
                 scheduled_at=job.scheduled_at or job.created_at,
                 created_at=job.created_at,
@@ -286,9 +292,11 @@ async def load_pending_jobs():
                 job_type=job.type,
                 payload=job.payload,
             ))
+            if pushed:
+                loaded += 1
 
-        if jobs:
-            logger.info("Loaded %d pending jobs into queue from DB", len(jobs))
+        if loaded:
+            logger.info("Loaded %d due pending jobs into queue from DB", loaded)
 
 
 async def priority_update_loop():
